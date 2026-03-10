@@ -22,7 +22,11 @@ const App: React.FC = () => {
     setError(null);
     try {
       const result = await extractDataFromDocument(doc.base64, doc.mimeType, doc.file.name, "");
-      setHistory(prev => [...prev, ...result.declarations]);
+      const newDeclarations = result.declarations.map(d => ({
+        ...d,
+        preview: doc.mimeType.startsWith('image/') ? doc.preview : undefined
+      }));
+      setHistory(prev => [...prev, ...newDeclarations]);
       setDoc(null);
     } catch (err) {
       setError("Error al extraer datos. Asegúrate de que el documento contiene formularios DIM legibles.");
@@ -143,20 +147,35 @@ const App: React.FC = () => {
             <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-6 text-center">Nuevo Procesamiento</h2>
             <Uploader onFileSelect={handleFileSelect} isLoading={loading} />
             {doc && (
-              <div className="mt-6 flex flex-col md:flex-row items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200 gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="bg-white p-2 rounded border border-slate-200 shadow-sm">
-                    <svg className="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" /></svg>
+              <div className="mt-6 flex flex-col items-center p-6 bg-slate-50 rounded-xl border border-slate-200 gap-6">
+                {doc.mimeType.startsWith('image/') && (
+                  <div className="w-full max-w-md aspect-video rounded-lg overflow-hidden border border-slate-200 shadow-inner bg-white">
+                    <img src={doc.preview} alt="Vista previa" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                   </div>
-                  <span className="text-sm font-bold text-slate-700 truncate max-w-[300px]">{doc.file.name}</span>
+                )}
+                <div className="flex flex-col md:flex-row items-center justify-between w-full gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-white p-2 rounded border border-slate-200 shadow-sm">
+                      <svg className="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" /></svg>
+                    </div>
+                    <span className="text-sm font-bold text-slate-700 truncate max-w-[300px]">{doc.file.name}</span>
+                  </div>
+                  <div className="flex gap-3 w-full md:w-auto">
+                    <button 
+                      onClick={() => setDoc(null)}
+                      className="px-4 py-3 rounded-lg text-sm font-bold text-slate-500 hover:bg-slate-200 transition-all"
+                    >
+                      Cancelar
+                    </button>
+                    <button 
+                      onClick={handleProcess}
+                      disabled={loading}
+                      className="bg-slate-900 text-white px-8 py-3 rounded-lg text-sm font-black hover:bg-slate-800 transition-all disabled:opacity-50 flex-1 md:flex-none shadow-md"
+                    >
+                      {loading ? 'ANALIZANDO...' : 'PROCESAR DOCUMENTO'}
+                    </button>
+                  </div>
                 </div>
-                <button 
-                  onClick={handleProcess}
-                  disabled={loading}
-                  className="bg-slate-900 text-white px-8 py-3 rounded-lg text-sm font-black hover:bg-slate-800 transition-all disabled:opacity-50 w-full md:w-auto shadow-md"
-                >
-                  {loading ? 'ANALIZANDO PDF...' : 'PROCESAR DOCUMENTO'}
-                </button>
               </div>
             )}
           </section>
@@ -208,8 +227,21 @@ const App: React.FC = () => {
                     {history.map((row, i) => (
                       <tr key={i} className="hover:bg-indigo-50/40 transition-colors group">
                         <td className="px-6 py-4 whitespace-nowrap sticky left-0 bg-white z-10 border-r group-hover:bg-indigo-50">
-                          <div className="font-black text-slate-800">{row.docId}</div>
-                          <div className="text-[9px] text-slate-400 font-medium truncate max-w-[150px]">{row.fileName}</div>
+                          <div className="flex items-center gap-3">
+                            {row.preview ? (
+                              <div className="w-10 h-10 rounded border border-slate-200 overflow-hidden bg-slate-50 flex-shrink-0">
+                                <img src={row.preview} alt="Thumbnail" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                              </div>
+                            ) : (
+                              <div className="w-10 h-10 rounded border border-slate-200 bg-slate-50 flex items-center justify-center flex-shrink-0">
+                                <svg className="w-5 h-5 text-slate-300" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" /></svg>
+                              </div>
+                            )}
+                            <div>
+                              <div className="font-black text-slate-800">{row.docId}</div>
+                              <div className="text-[9px] text-slate-400 font-medium truncate max-w-[150px]">{row.fileName}</div>
+                            </div>
+                          </div>
                         </td>
                         <td className="px-2 py-4 text-center text-slate-500 font-medium">{row.c42 || '---'}</td>
                         <td className="px-2 py-4 text-center text-slate-500 font-medium">{row.c44 || '---'}</td>

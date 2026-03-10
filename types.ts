@@ -19,6 +19,7 @@ export interface DeclarationRow {
   c78: number; // FOB
   c82: number; // SUM.G
   c134: string; // LEVANTE
+  preview?: string;
 }
 
 export interface ExtractionResult {
